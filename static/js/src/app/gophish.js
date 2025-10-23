@@ -148,6 +148,10 @@ var api = {
         // post() - Posts a template to POST /templates
         post: function (template) {
             return query("/templates/", "POST", template, false)
+        },
+        // generate_ai() - Generates an AI template at POST /templates/generate_ai
+        generate_ai: function (request) {
+            return query("/templates/generate_ai", "POST", request, true)
         }
     },
     // templateId contains the endpoints for /templates/:id

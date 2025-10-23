@@ -306,6 +306,158 @@ function importEmail() {
     }
 }
 
+function openAIModal() {
+    // Clear any previous messages
+    $("#generateAIModal\\.flashes").empty()
+}
+
+function generateAITemplate() {
+    var scenario = $("#ai_scenario").val()
+    var targetCompany = $("#ai_target_company").val()
+
+    if (!targetCompany) {
+        targetCompany = "Your Organization"
+    }
+
+    // Show loading state
+    var btnHtml = $("#generateAIButton").html()
+    $("#generateAIButton").html('<i class="fa fa-spinner fa-spin"></i> Generating...')
+    $("#generateAIButton").prop("disabled", true)
+
+    // Clear any previous flashes
+    $("#generateAIModal\\.flashes").empty()
+
+    // Record start time for minimum loading duration
+    var startTime = Date.now()
+    var minLoadingTime = 2000 // 2 seconds minimum for natural feel
+
+    // Use setTimeout to ensure the loading overlay renders before the API call
+    setTimeout(function() {
+        // Show loading overlay in modal
+        $("#generateAIModal .modal-body").append(
+            '<div id="ai-loading-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; ' +
+            'background: rgba(255,255,255,0.95); z-index: 1000; display: flex; align-items: center; justify-content: center;">' +
+            '<div style="text-align: center;">' +
+            '<i class="fa fa-spinner fa-spin fa-3x" style="color: #0066cc; margin-bottom: 15px;"></i>' +
+            '<h4 style="color: #333;">Generating AI Template...</h4>' +
+            '<p style="color: #666;">This may take a few seconds</p>' +
+            '</div></div>'
+        )
+
+        // Disable form inputs
+        $("#ai_scenario").prop("disabled", true)
+        $("#ai_target_company").prop("disabled", true)
+
+        // Call the API using the api helper (which handles authentication)
+        api.templates.generate_ai({
+        scenario: scenario,
+        target_company: targetCompany
+    })
+    .success(function(data) {
+        // Calculate remaining time to show loading
+        var elapsedTime = Date.now() - startTime
+        var remainingTime = Math.max(0, minLoadingTime - elapsedTime)
+
+        // Wait for minimum loading time to make it feel more natural
+        setTimeout(function() {
+            // Remove loading overlay
+            $("#ai-loading-overlay").remove()
+
+            // Re-enable form inputs
+            $("#ai_scenario").prop("disabled", false)
+            $("#ai_target_company").prop("disabled", false)
+
+            // Close the AI modal first
+            $("#generateAIModal").modal("hide")
+
+            // Reset button
+            $("#generateAIButton").html(btnHtml)
+            $("#generateAIButton").prop("disabled", false)
+
+            // Open the new template modal
+            edit(-1)
+            $("#modal").modal("show")
+
+            // Generate template name from scenario
+            var scenarioNames = {
+                'password_reset': 'Password Reset',
+                'urgent_action': 'Urgent Action Required',
+                'account_verification': 'Account Verification',
+                'security_alert': 'Security Alert',
+                'document_share': 'Document Shared',
+                'invoice': 'Invoice/Payment',
+                'it_support': 'IT Support',
+                'hr_announcement': 'HR Announcement'
+            }
+            var scenarioName = scenarioNames[scenario] || 'Phishing Template'
+            var templateName = "AI Generated - " + scenarioName + " - " + targetCompany
+
+            // Generate envelope sender based on scenario
+            var senderEmails = {
+                'password_reset': 'noreply@security-team.com',
+                'urgent_action': 'alerts@company-security.com',
+                'account_verification': 'verify@account-services.com',
+                'security_alert': 'security@it-department.com',
+                'document_share': 'noreply@document-share.com',
+                'invoice': 'billing@accounts-payable.com',
+                'it_support': 'support@it-helpdesk.com',
+                'hr_announcement': 'hr@human-resources.com'
+            }
+            var senderNames = {
+                'password_reset': 'Security Team',
+                'urgent_action': 'Security Alerts',
+                'account_verification': 'Account Services',
+                'security_alert': 'IT Security',
+                'document_share': 'Document Services',
+                'invoice': 'Accounts Payable',
+                'it_support': 'IT Support',
+                'hr_announcement': 'Human Resources'
+            }
+            var senderEmail = senderEmails[scenario] || 'noreply@company.com'
+            var senderName = senderNames[scenario] || 'System Administrator'
+            var envelopeSender = senderName + " <" + senderEmail + ">"
+
+            // Populate the template fields
+            $("#name").val(templateName)
+            $("#envelope-sender").val(envelopeSender)
+            $("#subject").val(data.subject)
+            $("#text_editor").val(data.text)
+            $("#html_editor").val(data.html)
+
+            // Switch to HTML tab if HTML content is provided
+            if (data.html) {
+                CKEDITOR.instances["html_editor"].setMode('wysiwyg')
+                $('.nav-tabs a[href="#html"]').click()
+            }
+
+            // Show success message
+            $("#modal\\.flashes").empty().append("<div style=\"text-align:center\" class=\"alert alert-success\">\
+                <i class=\"fa fa-check-circle\"></i> AI template generated successfully!</div>")
+        }, remainingTime)
+    })
+    .error(function(data) {
+        // Remove loading overlay
+        $("#ai-loading-overlay").remove()
+
+        // Re-enable form inputs
+        $("#ai_scenario").prop("disabled", false)
+        $("#ai_target_company").prop("disabled", false)
+
+        // Reset button
+        $("#generateAIButton").html(btnHtml)
+        $("#generateAIButton").prop("disabled", false)
+
+        var errorMsg = "Failed to generate template"
+        if (data.responseJSON && data.responseJSON.message) {
+            errorMsg = data.responseJSON.message
+        }
+
+        $("#generateAIModal\\.flashes").empty().append("<div style=\"text-align:center\" class=\"alert alert-danger\">\
+            <i class=\"fa fa-exclamation-circle\"></i> " + errorMsg + "</div>")
+    })
+    }, 100) // 100ms delay to ensure UI updates
+}
+
 function load() {
     $("#templateTable").hide()
     $("#emptyMessage").hide()

@@ -9,6 +9,7 @@
     <div class="row">
         <button type="button" class="btn btn-primary" onclick="edit(-1)" data-toggle="modal" data-backdrop="static"
             data-target="#modal"><i class="fa fa-plus"></i> New Template</button>
+        <button type="button" class="btn btn-success" onclick="openAIModal()" data-toggle="modal" data-backdrop="static" data-target="#generateAIModal"><i class="fa fa-magic"></i> Generate AI Template</button>
     </div>
     &nbsp;
     <div id="loading">
@@ -131,6 +132,46 @@
             <div class="modal-footer">
                 <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
                 <button type="button" class="btn btn-primary" id="modalSubmit" onclick="importEmail()">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- AI Template Generation Modal -->
+<div class="modal fade" id="generateAIModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="generateAIModalLabel">Generate AI Template</h4>
+            </div>
+            <div class="modal-body" style="position: relative; min-height: 250px;">
+                <div class="row" id="generateAIModal.flashes"></div>
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i> AI will generate a phishing email template based on your scenario selection. This takes 5-10 seconds.
+                </div>
+                <label class="control-label" for="ai_scenario">Phishing Scenario:</label>
+                <div class="form-group">
+                    <select class="form-control" id="ai_scenario">
+                        <option value="password_reset">Password Reset</option>
+                        <option value="urgent_action">Urgent Action Required</option>
+                        <option value="account_verification">Account Verification</option>
+                        <option value="security_alert">Security Alert</option>
+                        <option value="document_share">Document Shared</option>
+                        <option value="invoice">Invoice/Payment</option>
+                        <option value="it_support">IT Support</option>
+                        <option value="hr_announcement">HR Announcement</option>
+                    </select>
+                </div>
+                <label class="control-label" for="ai_target_company">Target Company Name:</label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Example Corp" id="ai_target_company" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
+                <button type="button" class="btn btn-success" id="generateAIButton" onclick="generateAITemplate()">
+                    <i class="fa fa-magic"></i> Generate Template
+                </button>
             </div>
         </div>
     </div>
