@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npm run:*)",
+      "Bash(npx gulp)",
+      "Bash(python:*)",
+      "Bash(dir:*)",
+      "Bash(go build:*)",
+      "Bash(cat:*)",
+      "Bash(sqlite3:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
