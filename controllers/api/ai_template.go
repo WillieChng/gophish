@@ -15,15 +15,17 @@ import (
 
 // AITemplateRequest represents the request structure for AI template generation
 type AITemplateRequest struct {
-	Scenario      string `json:"scenario"`
-	TargetCompany string `json:"target_company"`
+	Scenario           string `json:"scenario"`
+	TargetCompany      string `json:"target_company"`
+	IncludeLandingPage bool   `json:"include_landing_page"`
 }
 
 // AITemplateResponse represents the response from the Python AI module
 type AITemplateResponse struct {
-	Subject string `json:"subject"`
-	HTML    string `json:"html"`
-	Text    string `json:"text"`
+	Subject     string `json:"subject"`
+	HTML        string `json:"html"`
+	Text        string `json:"text"`
+	LandingPage string `json:"landing_page,omitempty"`
 }
 
 // GenerateAITemplate handles POST requests to generate phishing templates using AI
@@ -48,7 +50,7 @@ func (as *Server) GenerateAITemplate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Call Python module to generate template
-		template, err := generateTemplateWithAI(req.Scenario, req.TargetCompany)
+		template, err := generateTemplateWithAI(req.Scenario, req.TargetCompany, req.IncludeLandingPage)
 		if err != nil {
 			log.Errorf("Error generating AI template: %v", err)
 			JSONResponse(w, models.Response{Success: false, Message: fmt.Sprintf("Failed to generate template: %v", err)}, http.StatusInternalServerError)
@@ -64,16 +66,25 @@ func (as *Server) GenerateAITemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 // generateTemplateWithAI calls the Python AI module to generate a phishing template
-func generateTemplateWithAI(scenario string, targetCompany string) (*AITemplateResponse, error) {
+func generateTemplateWithAI(scenario string, targetCompany string, includeLandingPage bool) (*AITemplateResponse, error) {
 	// Create context with timeout (30 seconds for AI generation)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// Build command to call Python module
-	cmd := exec.CommandContext(ctx, "python", "ai_module/generate_phishing.py",
+	args := []string{
+		"ai_module/generate_phishing.py",
 		"--scenario", scenario,
 		"--target", targetCompany,
-		"--format", "json")
+		"--format", "json",
+	}
+
+	// Add landing page flag if requested
+	if includeLandingPage {
+		args = append(args, "--include-landing-page")
+	}
+
+	cmd := exec.CommandContext(ctx, "python", args...)
 
 	// Capture output
 	var stdout, stderr bytes.Buffer

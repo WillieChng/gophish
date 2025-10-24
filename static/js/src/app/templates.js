@@ -314,6 +314,7 @@ function openAIModal() {
 function generateAITemplate() {
     var scenario = $("#ai_scenario").val()
     var targetCompany = $("#ai_target_company").val()
+    var includeLandingPage = $("#ai_include_landing_page").prop("checked")
 
     if (!targetCompany) {
         targetCompany = "Your Organization"
@@ -334,12 +335,16 @@ function generateAITemplate() {
     // Use setTimeout to ensure the loading overlay renders before the API call
     setTimeout(function() {
         // Show loading overlay in modal
+        var loadingText = includeLandingPage ?
+            '<h4 style="color: #333;">Generating AI Template & Landing Page...</h4>' :
+            '<h4 style="color: #333;">Generating AI Template...</h4>'
+
         $("#generateAIModal .modal-body").append(
             '<div id="ai-loading-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; ' +
             'background: rgba(255,255,255,0.95); z-index: 1000; display: flex; align-items: center; justify-content: center;">' +
             '<div style="text-align: center;">' +
             '<i class="fa fa-spinner fa-spin fa-3x" style="color: #0066cc; margin-bottom: 15px;"></i>' +
-            '<h4 style="color: #333;">Generating AI Template...</h4>' +
+            loadingText +
             '<p style="color: #666;">This may take a few seconds</p>' +
             '</div></div>'
         )
@@ -347,11 +352,13 @@ function generateAITemplate() {
         // Disable form inputs
         $("#ai_scenario").prop("disabled", true)
         $("#ai_target_company").prop("disabled", true)
+        $("#ai_include_landing_page").prop("disabled", true)
 
         // Call the API using the api helper (which handles authentication)
         api.templates.generate_ai({
         scenario: scenario,
-        target_company: targetCompany
+        target_company: targetCompany,
+        include_landing_page: includeLandingPage
     })
     .success(function(data) {
         // Calculate remaining time to show loading
@@ -366,17 +373,7 @@ function generateAITemplate() {
             // Re-enable form inputs
             $("#ai_scenario").prop("disabled", false)
             $("#ai_target_company").prop("disabled", false)
-
-            // Close the AI modal first
-            $("#generateAIModal").modal("hide")
-
-            // Reset button
-            $("#generateAIButton").html(btnHtml)
-            $("#generateAIButton").prop("disabled", false)
-
-            // Open the new template modal
-            edit(-1)
-            $("#modal").modal("show")
+            $("#ai_include_landing_page").prop("disabled", false)
 
             // Generate template name from scenario
             var scenarioNames = {
@@ -391,6 +388,38 @@ function generateAITemplate() {
             }
             var scenarioName = scenarioNames[scenario] || 'Phishing Template'
             var templateName = "AI Generated - " + scenarioName + " - " + targetCompany
+
+            // If landing page was generated, save it first
+            if (includeLandingPage && data.landing_page) {
+                var landingPageName = templateName + " - Landing Page"
+                var landingPage = {
+                    name: landingPageName,
+                    html: data.landing_page,
+                    capture_credentials: true,
+                    capture_passwords: true,
+                    redirect_url: "https://example.com"
+                }
+
+                // Save the landing page
+                api.pages.post(landingPage)
+                    .success(function(pageData) {
+                        successFlash("Landing page '" + landingPageName + "' created successfully!")
+                    })
+                    .error(function(pageError) {
+                        errorFlash("Failed to create landing page: " + (pageError.responseJSON ? pageError.responseJSON.message : "Unknown error"))
+                    })
+            }
+
+            // Close the AI modal first
+            $("#generateAIModal").modal("hide")
+
+            // Reset button
+            $("#generateAIButton").html(btnHtml)
+            $("#generateAIButton").prop("disabled", false)
+
+            // Open the new template modal
+            edit(-1)
+            $("#modal").modal("show")
 
             // Generate envelope sender based on scenario
             var senderEmails = {
@@ -431,8 +460,13 @@ function generateAITemplate() {
             }
 
             // Show success message
-            $("#modal\\.flashes").empty().append("<div style=\"text-align:center\" class=\"alert alert-success\">\
-                <i class=\"fa fa-check-circle\"></i> AI template generated successfully!</div>")
+            var successMsg = includeLandingPage && data.landing_page ?
+                "<div style=\"text-align:center\" class=\"alert alert-success\">\
+                <i class=\"fa fa-check-circle\"></i> AI template and landing page generated successfully!</div>" :
+                "<div style=\"text-align:center\" class=\"alert alert-success\">\
+                <i class=\"fa fa-check-circle\"></i> AI template generated successfully!</div>"
+
+            $("#modal\\.flashes").empty().append(successMsg)
         }, remainingTime)
     })
     .error(function(data) {
@@ -442,6 +476,7 @@ function generateAITemplate() {
         // Re-enable form inputs
         $("#ai_scenario").prop("disabled", false)
         $("#ai_target_company").prop("disabled", false)
+        $("#ai_include_landing_page").prop("disabled", false)
 
         // Reset button
         $("#generateAIButton").html(btnHtml)
