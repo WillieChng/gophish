@@ -8,7 +8,8 @@
       "Bash(dir:*)",
       "Bash(go build:*)",
       "Bash(cat:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(npx gulp:*)"
     ],
     "deny": [],
     "ask": []
