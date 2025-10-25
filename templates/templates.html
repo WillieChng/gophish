@@ -10,6 +10,7 @@
         <button type="button" class="btn btn-primary" onclick="edit(-1)" data-toggle="modal" data-backdrop="static"
             data-target="#modal"><i class="fa fa-plus"></i> New Template</button>
         <button type="button" class="btn btn-success" onclick="openAIModal()" data-toggle="modal" data-backdrop="static" data-target="#generateAIModal"><i class="fa fa-magic"></i> Generate AI Template</button>
+        <button type="button" class="btn btn-info" onclick="openAddScenarioModal()" data-toggle="modal" data-backdrop="static" data-target="#addScenarioModal"><i class="fa fa-sitemap"></i> Add Scenario</button>
     </div>
     &nbsp;
     <div id="loading">
@@ -25,6 +26,7 @@
             <thead>
                 <tr>
                     <th>Name</th>
+                    <th>Phishing Signs</th>
                     <th>Modified Date</th>
                     <th class="col-md-2 no-sort"></th>
                 </tr>
@@ -174,11 +176,156 @@
                            title="Automatically generates a landing page that matches your email template's scenario"></i>
                     </label>
                 </div>
+                <hr>
+                <h5><i class="fa fa-shield"></i> Risk Level Configuration
+                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                       title="Configure how difficult each phishing sign should be to detect. Low = Easy to spot, Medium = Moderate, High = Very sophisticated"></i>
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label><small><i class="fa fa-clock-o"></i> Urgency</small></label>
+                            <div class="btn-group btn-group-justified btn-group-sm" role="group">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-success ai-risk-btn" data-risk="urgency" data-value="low">Low</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-warning ai-risk-btn active" data-risk="urgency" data-value="medium">Medium</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger ai-risk-btn" data-risk="urgency" data-value="high">High</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label><small><i class="fa fa-link"></i> Suspicious Links</small></label>
+                            <div class="btn-group btn-group-justified btn-group-sm" role="group">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-success ai-risk-btn" data-risk="suspicious_links" data-value="low">Low</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-warning ai-risk-btn active" data-risk="suspicious_links" data-value="medium">Medium</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger ai-risk-btn" data-risk="suspicious_links" data-value="high">High</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label><small><i class="fa fa-user"></i> Generic Greeting</small></label>
+                            <div class="btn-group btn-group-justified btn-group-sm" role="group">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-success ai-risk-btn" data-risk="generic_greeting" data-value="low">Low</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-warning ai-risk-btn active" data-risk="generic_greeting" data-value="medium">Medium</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger ai-risk-btn" data-risk="generic_greeting" data-value="high">High</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label><small><i class="fa fa-envelope"></i> Suspicious Sender</small></label>
+                            <div class="btn-group btn-group-justified btn-group-sm" role="group">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-success ai-risk-btn" data-risk="suspicious_sender" data-value="low">Low</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-warning ai-risk-btn active" data-risk="suspicious_sender" data-value="medium">Medium</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger ai-risk-btn" data-risk="suspicious_sender" data-value="high">High</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label><small><i class="fa fa-paperclip"></i> Attachments</small></label>
+                            <div class="btn-group btn-group-justified btn-group-sm" role="group">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-success ai-risk-btn" data-risk="attachments" data-value="low">Low</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-warning ai-risk-btn active" data-risk="attachments" data-value="medium">Medium</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger ai-risk-btn" data-risk="attachments" data-value="high">High</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label><small><i class="fa fa-text-width"></i> Spelling Errors</small></label>
+                            <div class="btn-group btn-group-justified btn-group-sm" role="group">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-success ai-risk-btn" data-risk="spelling_errors" data-value="low">Low</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-warning ai-risk-btn active" data-risk="spelling_errors" data-value="medium">Medium</button>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger ai-risk-btn" data-risk="spelling_errors" data-value="high">High</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
                 <button type="button" class="btn btn-success" id="generateAIButton" onclick="generateAITemplate()">
                     <i class="fa fa-magic"></i> Generate Template
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Add Scenario Modal -->
+<div class="modal fade" id="addScenarioModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="addScenarioModalLabel">Add Custom Scenario</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row" id="addScenarioModal.flashes"></div>
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i> Create a custom phishing scenario that can be used to generate AI templates. Scenarios define the theme and context for phishing emails.
+                </div>
+                <label class="control-label" for="scenario_name">Scenario Name: <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="Internal identifier (e.g., tax_refund, ceo_directive)"></i></label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="e.g., tax_refund" id="scenario_name" />
+                    <small class="help-block">Use lowercase with underscores (e.g., tax_refund, ceo_directive)</small>
+                </div>
+                <label class="control-label" for="scenario_display_name">Display Name:</label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="e.g., Tax Refund" id="scenario_display_name" />
+                    <small class="help-block">User-friendly name shown in the dropdown</small>
+                </div>
+                <label class="control-label" for="scenario_description">Description:</label>
+                <div class="form-group">
+                    <textarea rows="3" class="form-control" placeholder="Describe the scenario context and purpose..." id="scenario_description"></textarea>
+                    <small class="help-block">Brief description of what this scenario simulates</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveScenarioButton" onclick="saveScenario()">
+                    <i class="fa fa-save"></i> Save Scenario
                 </button>
             </div>
         </div>

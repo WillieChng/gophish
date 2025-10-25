@@ -27,5 +27,20 @@ gophish_admin.crt
 gophish_admin.key
 
 *.exe
+*.exe~
 gophish.db*
 gophish
+
+# Log files
+*.log
+gophish_*.log
+
+# Temporary files
+nul
+*.tmp
+*.temp
+
+# Environment files (if any)
+.env
+.env.local
+.env.production

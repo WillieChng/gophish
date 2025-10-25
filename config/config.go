@@ -37,6 +37,8 @@ type Config struct {
 	TestFlag       bool        `json:"test_flag"`
 	ContactAddress string      `json:"contact_address"`
 	Logging        *log.Config `json:"logging"`
+	MongoURI       string      `json:"mongo_uri"`
+	MongoDB        string      `json:"mongo_db"`
 }
 
 // Version contains the current gophish version

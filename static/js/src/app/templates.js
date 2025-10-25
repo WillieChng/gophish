@@ -13,6 +13,42 @@ var icons = {
     "application/x-msdownload": "fa-file-o"
 }
 
+// Risk profile configuration mapping icons and colors
+var riskConfig = {
+    risk_urgency: { icon: 'fa-clock-o', label: 'Urgency' },
+    risk_suspicious_links: { icon: 'fa-link', label: 'Suspicious Links' },
+    risk_generic_greeting: { icon: 'fa-user', label: 'Generic Greeting' },
+    risk_suspicious_sender: { icon: 'fa-envelope', label: 'Suspicious Sender' },
+    risk_attachments: { icon: 'fa-paperclip', label: 'Attachments' },
+    risk_spelling_errors: { icon: 'fa-text-width', label: 'Spelling Errors' }
+}
+
+var riskColors = {
+    low: '#5cb85c',
+    medium: '#f0ad4e',
+    high: '#d9534f'
+}
+
+// Generate risk profile blocks visualization
+function generateRiskBlocks(item) {
+    var html = '<div style="display: flex; gap: 4px; flex-wrap: wrap;">'
+    var risks = ['risk_urgency', 'risk_suspicious_links', 'risk_generic_greeting',
+                 'risk_suspicious_sender', 'risk_attachments', 'risk_spelling_errors']
+
+    risks.forEach(function(risk) {
+        var level = item[risk] || 'medium'
+        var config = riskConfig[risk]
+        var color = riskColors[level]
+        html += '<div style="background-color: ' + color + '; width: 28px; height: 28px; border-radius: 4px; ' +
+                'display: flex; align-items: center; justify-content: center; color: white;" ' +
+                'title="' + config.label + ': ' + level.charAt(0).toUpperCase() + level.slice(1) + '">' +
+                '<i class="fa ' + config.icon + '" style="font-size: 12px;"></i></div>'
+    })
+
+    html += '</div>'
+    return html
+}
+
 // Save attempts to POST to /templates/
 function save(idx) {
     var template = {
@@ -35,6 +71,35 @@ function save(idx) {
         template.html = template.html.replace("{{.Tracker}}</body>", "</body>")
     }
     template.text = $("#text_editor").val()
+    // Preserve existing risk profile data if editing, otherwise set defaults
+    // Risk profiles are set during AI generation, not in the template UI
+    if (idx != -1 && templates[idx]) {
+        // Editing existing template - preserve its risk values
+        template.risk_urgency = templates[idx].risk_urgency || 'medium'
+        template.risk_suspicious_links = templates[idx].risk_suspicious_links || 'medium'
+        template.risk_generic_greeting = templates[idx].risk_generic_greeting || 'medium'
+        template.risk_suspicious_sender = templates[idx].risk_suspicious_sender || 'medium'
+        template.risk_attachments = templates[idx].risk_attachments || 'medium'
+        template.risk_spelling_errors = templates[idx].risk_spelling_errors || 'medium'
+    } else if (window.aiGeneratedRiskProfile) {
+        // New template from AI generation - use AI generated risk values
+        template.risk_urgency = window.aiGeneratedRiskProfile.risk_urgency || 'medium'
+        template.risk_suspicious_links = window.aiGeneratedRiskProfile.risk_suspicious_links || 'medium'
+        template.risk_generic_greeting = window.aiGeneratedRiskProfile.risk_generic_greeting || 'medium'
+        template.risk_suspicious_sender = window.aiGeneratedRiskProfile.risk_suspicious_sender || 'medium'
+        template.risk_attachments = window.aiGeneratedRiskProfile.risk_attachments || 'medium'
+        template.risk_spelling_errors = window.aiGeneratedRiskProfile.risk_spelling_errors || 'medium'
+        // Clear the temporary storage after using it
+        delete window.aiGeneratedRiskProfile
+    } else {
+        // Manual template creation - default values
+        template.risk_urgency = 'medium'
+        template.risk_suspicious_links = 'medium'
+        template.risk_generic_greeting = 'medium'
+        template.risk_suspicious_sender = 'medium'
+        template.risk_attachments = 'medium'
+        template.risk_spelling_errors = 'medium'
+    }
     // Add the attachments
     $.each($("#attachmentsTable").DataTable().rows().data(), function (i, target) {
         template.attachments.push({
@@ -353,12 +418,24 @@ function generateAITemplate() {
         $("#ai_scenario").prop("disabled", true)
         $("#ai_target_company").prop("disabled", true)
         $("#ai_include_landing_page").prop("disabled", true)
+        $(".ai-risk-btn").prop("disabled", true)
+
+        // Collect risk profile values
+        var phishingSigns = {
+            urgency: $('.ai-risk-btn[data-risk="urgency"].active').data('value') || 'medium',
+            suspicious_links: $('.ai-risk-btn[data-risk="suspicious_links"].active').data('value') || 'medium',
+            generic_greeting: $('.ai-risk-btn[data-risk="generic_greeting"].active').data('value') || 'medium',
+            suspicious_sender: $('.ai-risk-btn[data-risk="suspicious_sender"].active').data('value') || 'medium',
+            attachments: $('.ai-risk-btn[data-risk="attachments"].active').data('value') || 'medium',
+            spelling_errors: $('.ai-risk-btn[data-risk="spelling_errors"].active').data('value') || 'medium'
+        }
 
         // Call the API using the api helper (which handles authentication)
         api.templates.generate_ai({
         scenario: scenario,
         target_company: targetCompany,
-        include_landing_page: includeLandingPage
+        include_landing_page: includeLandingPage,
+        phishing_signs: phishingSigns
     })
     .success(function(data) {
         // Calculate remaining time to show loading
@@ -374,6 +451,7 @@ function generateAITemplate() {
             $("#ai_scenario").prop("disabled", false)
             $("#ai_target_company").prop("disabled", false)
             $("#ai_include_landing_page").prop("disabled", false)
+            $(".ai-risk-btn").prop("disabled", false)
 
             // Generate template name from scenario
             var scenarioNames = {
@@ -453,6 +531,17 @@ function generateAITemplate() {
             $("#text_editor").val(data.text)
             $("#html_editor").val(data.html)
 
+            // Store the risk profile values for saving
+            // We need to store them temporarily so the save function can access them
+            window.aiGeneratedRiskProfile = {
+                risk_urgency: phishingSigns.urgency,
+                risk_suspicious_links: phishingSigns.suspicious_links,
+                risk_generic_greeting: phishingSigns.generic_greeting,
+                risk_suspicious_sender: phishingSigns.suspicious_sender,
+                risk_attachments: phishingSigns.attachments,
+                risk_spelling_errors: phishingSigns.spelling_errors
+            }
+
             // Switch to HTML tab if HTML content is provided
             if (data.html) {
                 CKEDITOR.instances["html_editor"].setMode('wysiwyg')
@@ -477,6 +566,7 @@ function generateAITemplate() {
         $("#ai_scenario").prop("disabled", false)
         $("#ai_target_company").prop("disabled", false)
         $("#ai_include_landing_page").prop("disabled", false)
+        $(".ai-risk-btn").prop("disabled", false)
 
         // Reset button
         $("#generateAIButton").html(btnHtml)
@@ -491,6 +581,127 @@ function generateAITemplate() {
             <i class=\"fa fa-exclamation-circle\"></i> " + errorMsg + "</div>")
     })
     }, 100) // 100ms delay to ensure UI updates
+}
+
+// Open Add Scenario Modal
+function openAddScenarioModal() {
+    // Clear any previous messages and form
+    $("#addScenarioModal\\.flashes").empty()
+    $("#scenario_name").val("")
+    $("#scenario_display_name").val("")
+    $("#scenario_description").val("")
+}
+
+// Save new scenario to MongoDB
+function saveScenario() {
+    var name = $("#scenario_name").val().trim()
+    var displayName = $("#scenario_display_name").val().trim()
+    var description = $("#scenario_description").val().trim()
+
+    // Validation
+    if (!name) {
+        $("#addScenarioModal\\.flashes").empty().append(
+            '<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> Scenario name is required</div>'
+        )
+        return
+    }
+
+    if (!displayName) {
+        $("#addScenarioModal\\.flashes").empty().append(
+            '<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> Display name is required</div>'
+        )
+        return
+    }
+
+    // Validate name format (lowercase with underscores)
+    if (!/^[a-z_]+$/.test(name)) {
+        $("#addScenarioModal\\.flashes").empty().append(
+            '<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> Scenario name must be lowercase letters and underscores only</div>'
+        )
+        return
+    }
+
+    // Show loading state
+    var btnHtml = $("#saveScenarioButton").html()
+    $("#saveScenarioButton").html('<i class="fa fa-spinner fa-spin"></i> Saving...')
+    $("#saveScenarioButton").prop("disabled", true)
+
+    // Create scenario object
+    var scenario = {
+        name: name,
+        display_name: displayName,
+        description: description
+    }
+
+    // Call API to save scenario
+    $.ajax({
+        url: '/api/scenarios/',
+        type: 'POST',
+        contentType: 'application/json',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader('Authorization', 'Bearer ' + user.api_key)
+        },
+        data: JSON.stringify(scenario),
+        success: function(data) {
+            // Reset button
+            $("#saveScenarioButton").html(btnHtml)
+            $("#saveScenarioButton").prop("disabled", false)
+
+            // Close modal
+            $("#addScenarioModal").modal("hide")
+
+            // Show success message
+            successFlash("Scenario '" + displayName + "' created successfully!")
+
+            // Reload scenarios in the dropdown
+            loadScenariosIntoDropdown()
+        },
+        error: function(xhr) {
+            // Reset button
+            $("#saveScenarioButton").html(btnHtml)
+            $("#saveScenarioButton").prop("disabled", false)
+
+            var errorMsg = "Failed to create scenario"
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg = xhr.responseJSON.message
+            }
+
+            $("#addScenarioModal\\.flashes").empty().append(
+                '<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> ' + errorMsg + '</div>'
+            )
+        }
+    })
+}
+
+// Load scenarios from MongoDB API into dropdown
+function loadScenariosIntoDropdown() {
+    $.ajax({
+        url: '/api/scenarios/',
+        type: 'GET',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader('Authorization', 'Bearer ' + user.api_key)
+        },
+        success: function(scenarios) {
+            // Only update dropdown if we got valid data
+            if (scenarios && scenarios.length > 0) {
+                var dropdown = $("#ai_scenario")
+                dropdown.empty()
+
+                // Add all scenarios to dropdown
+                scenarios.forEach(function(scenario) {
+                    var option = $('<option></option>')
+                        .attr('value', scenario.name)
+                        .text(scenario.display_name)
+                    dropdown.append(option)
+                })
+            }
+        },
+        error: function(xhr) {
+            console.error("Failed to load scenarios:", xhr)
+            // Keep existing hardcoded scenarios as fallback
+            // Don't modify the dropdown - it will use the hardcoded HTML options
+        }
+    })
 }
 
 function load() {
@@ -515,6 +726,7 @@ function load() {
                 $.each(templates, function (i, template) {
                     templateRows.push([
                         escapeHtml(template.name),
+                        generateRiskBlocks(template),
                         moment(template.modified_date).format('MMMM Do YYYY, h:mm:ss a'),
                         "<div class='pull-right'><span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Edit Template' onclick='edit(" + i + ")'>\
                     <i class='fa fa-pencil'></i>\
@@ -603,6 +815,25 @@ $(document).ready(function () {
             infoTab.get('linkType').hidden = true;
         }
     });
+
+    // Handle AI risk button clicks
+    $(document).on('click', '.ai-risk-btn', function() {
+        var riskType = $(this).data('risk')
+        $('.ai-risk-btn[data-risk="' + riskType + '"]').removeClass('active')
+        $(this).addClass('active')
+    })
+
+    // Load scenarios when opening AI modal
+    $('#generateAIModal').on('show.bs.modal', function() {
+        // Try to load scenarios from API, but don't block modal opening
+        try {
+            loadScenariosIntoDropdown()
+        } catch(e) {
+            console.error("Error loading scenarios:", e)
+            // Modal will still open with hardcoded scenarios
+        }
+    })
+
     load()
 
 })

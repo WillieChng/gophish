@@ -14,11 +14,17 @@ import (
 // Group contains the fields needed for a user -> group mapping
 // Groups contain 1..* Targets
 type Group struct {
-	Id           int64     `json:"id"`
-	UserId       int64     `json:"-"`
-	Name         string    `json:"name"`
-	ModifiedDate time.Time `json:"modified_date"`
-	Targets      []Target  `json:"targets" sql:"-"`
+	Id                     int64     `json:"id"`
+	UserId                 int64     `json:"-"`
+	Name                   string    `json:"name"`
+	ModifiedDate           time.Time `json:"modified_date"`
+	Targets                []Target  `json:"targets" sql:"-"`
+	RiskUrgency            string    `json:"risk_urgency" gorm:"column:risk_urgency"`
+	RiskSuspiciousLinks    string    `json:"risk_suspicious_links" gorm:"column:risk_suspicious_links"`
+	RiskGenericGreeting    string    `json:"risk_generic_greeting" gorm:"column:risk_generic_greeting"`
+	RiskSuspiciousSender   string    `json:"risk_suspicious_sender" gorm:"column:risk_suspicious_sender"`
+	RiskAttachments        string    `json:"risk_attachments" gorm:"column:risk_attachments"`
+	RiskSpellingErrors     string    `json:"risk_spelling_errors" gorm:"column:risk_spelling_errors"`
 }
 
 // GroupSummaries is a struct representing the overview of Groups.
@@ -31,10 +37,16 @@ type GroupSummaries struct {
 // difference is that, instead of listing the Targets (which could be expensive
 // for large groups), it lists the target count.
 type GroupSummary struct {
-	Id           int64     `json:"id"`
-	Name         string    `json:"name"`
-	ModifiedDate time.Time `json:"modified_date"`
-	NumTargets   int64     `json:"num_targets"`
+	Id                   int64     `json:"id"`
+	Name                 string    `json:"name"`
+	ModifiedDate         time.Time `json:"modified_date"`
+	NumTargets           int64     `json:"num_targets"`
+	RiskUrgency          string    `json:"risk_urgency"`
+	RiskSuspiciousLinks  string    `json:"risk_suspicious_links"`
+	RiskGenericGreeting  string    `json:"risk_generic_greeting"`
+	RiskSuspiciousSender string    `json:"risk_suspicious_sender"`
+	RiskAttachments      string    `json:"risk_attachments"`
+	RiskSpellingErrors   string    `json:"risk_spelling_errors"`
 }
 
 // GroupTarget is used for a many-to-many relationship between 1..* Groups and 1..* Targets
@@ -127,7 +139,7 @@ func GetGroups(uid int64) ([]Group, error) {
 func GetGroupSummaries(uid int64) (GroupSummaries, error) {
 	gs := GroupSummaries{}
 	query := db.Table("groups").Where("user_id=?", uid)
-	err := query.Select("id, name, modified_date").Scan(&gs.Groups).Error
+	err := query.Select("id, name, modified_date, risk_urgency, risk_suspicious_links, risk_generic_greeting, risk_suspicious_sender, risk_attachments, risk_spelling_errors").Scan(&gs.Groups).Error
 	if err != nil {
 		log.Error(err)
 		return gs, err

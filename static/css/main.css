@@ -742,3 +742,27 @@ table.dataTable {
 #password-strength-container {
     height: 40px;
 }
+
+/* Risk button active states */
+.risk-btn.active,
+.template-risk-btn.active,
+.ai-risk-btn.active {
+    border: 2px solid #000 !important;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.risk-btn.btn-success.active {
+    border-color: #2d6b2d !important;
+}
+
+.risk-btn.btn-warning.active,
+.template-risk-btn.btn-warning.active,
+.ai-risk-btn.btn-warning.active {
+    border-color: #d89100 !important;
+}
+
+.risk-btn.btn-danger.active,
+.template-risk-btn.btn-danger.active,
+.ai-risk-btn.btn-danger.active {
+    border-color: #a72622 !important;
+}

@@ -10,7 +10,12 @@ import sys
 import os
 import json
 import argparse
+import requests
+import urllib3
 from dotenv import load_dotenv
+
+# Disable SSL warnings for self-signed certificates
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Get the absolute path to this script's directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -818,7 +823,107 @@ def generate_landing_page(scenario, target_company):
     return scenario_pages.get(scenario.lower(), scenario_pages['account_verification'])
 
 
-def generate_template(scenario, target_company, output_format='json', include_landing_page=False):
+def fetch_scenarios_from_api():
+    """
+    Fetch available scenarios from Gophish API
+
+    Returns:
+        dict: Scenario name to config mapping
+    """
+    gophish_url = os.getenv("GOPHISH_API_URL", "https://localhost:3333")
+    api_key = os.getenv("GOPHISH_API_KEY")
+
+    if not api_key:
+        # Fall back to hardcoded scenarios if API not configured
+        return get_fallback_scenarios()
+
+    try:
+        headers = {"Authorization": api_key}
+        response = requests.get(
+            f"{gophish_url}/api/scenarios/",
+            headers=headers,
+            verify=False,  # Skip SSL verification for self-signed certs
+            timeout=5
+        )
+
+        if response.status_code == 200:
+            scenarios = response.json()
+            # Convert API response to scenario config format
+            scenario_config = {}
+            for s in scenarios:
+                # For now, use default phishing signs based on scenario theme
+                # In the future, this could be fetched from group/template risk profiles
+                scenario_config[s['name']] = {
+                    'phishing_signs': get_default_signs_for_scenario(s['name'])
+                }
+            return scenario_config
+        else:
+            print(f"Warning: Failed to fetch scenarios from API (status {response.status_code}), using fallback", file=sys.stderr)
+            return get_fallback_scenarios()
+    except Exception as e:
+        print(f"Warning: Error fetching scenarios from API: {e}, using fallback", file=sys.stderr)
+        return get_fallback_scenarios()
+
+
+def get_default_signs_for_scenario(scenario_name):
+    """
+    Get default phishing signs for a scenario based on its theme
+
+    Args:
+        scenario_name: Name of the scenario
+
+    Returns:
+        list: Default phishing signs for this scenario
+    """
+    defaults = {
+        'password_reset': ['urgency', 'suspicious_links'],
+        'urgent_action': ['urgency', 'generic_greeting', 'suspicious_links'],
+        'account_verification': ['urgency', 'suspicious_links', 'generic_greeting'],
+        'security_alert': ['urgency', 'suspicious_sender', 'suspicious_links'],
+        'document_share': ['suspicious_links', 'attachments'],
+        'invoice': ['urgency', 'attachments', 'suspicious_sender'],
+        'it_support': ['urgency', 'suspicious_links'],
+        'hr_announcement': ['suspicious_links', 'generic_greeting'],
+    }
+    return defaults.get(scenario_name, ['urgency', 'suspicious_links'])
+
+
+def get_fallback_scenarios():
+    """
+    Fallback scenario configuration if API is not available
+
+    Returns:
+        dict: Hardcoded scenario configuration
+    """
+    return {
+        'password_reset': {
+            'phishing_signs': ['urgency', 'suspicious_links']
+        },
+        'urgent_action': {
+            'phishing_signs': ['urgency', 'generic_greeting', 'suspicious_links']
+        },
+        'account_verification': {
+            'phishing_signs': ['urgency', 'suspicious_links', 'generic_greeting']
+        },
+        'security_alert': {
+            'phishing_signs': ['urgency', 'suspicious_sender', 'suspicious_links']
+        },
+        'document_share': {
+            'phishing_signs': ['suspicious_links', 'attachments']
+        },
+        'invoice': {
+            'phishing_signs': ['urgency', 'attachments', 'suspicious_sender']
+        },
+        'it_support': {
+            'phishing_signs': ['urgency', 'suspicious_links']
+        },
+        'hr_announcement': {
+            'phishing_signs': ['suspicious_links', 'generic_greeting']
+        }
+    }
+
+
+def generate_template(scenario, target_company, output_format='json', include_landing_page=False, custom_phishing_signs=None):
     """
     Generate a phishing template using AI
 
@@ -827,6 +932,7 @@ def generate_template(scenario, target_company, output_format='json', include_la
         target_company: The target company name
         output_format: Output format ('json' or 'text')
         include_landing_page: Whether to also generate a landing page
+        custom_phishing_signs: Optional dict of phishing signs with difficulty levels
 
     Returns:
         Generated template as JSON or text
@@ -840,54 +946,28 @@ def generate_template(scenario, target_company, output_format='json', include_la
         # Initialize the generator
         generator = PhishingGenerator()
 
-        # Map scenario names to phishing signs and risk levels
-        scenario_config = {
-            'password_reset': {
-                'phishing_signs': ['urgency', 'suspicious_links'],
-                'risk_level': 'medium'
-            },
-            'urgent_action': {
-                'phishing_signs': ['urgency', 'generic_greeting', 'suspicious_links'],
-                'risk_level': 'high'
-            },
-            'account_verification': {
-                'phishing_signs': ['urgency', 'suspicious_links', 'generic_greeting'],
-                'risk_level': 'medium'
-            },
-            'security_alert': {
-                'phishing_signs': ['urgency', 'suspicious_sender', 'suspicious_links'],
-                'risk_level': 'high'
-            },
-            'document_share': {
-                'phishing_signs': ['suspicious_links', 'attachments'],
-                'risk_level': 'medium'
-            },
-            'invoice': {
-                'phishing_signs': ['urgency', 'attachments', 'suspicious_sender'],
-                'risk_level': 'medium'
-            },
-            'it_support': {
-                'phishing_signs': ['urgency', 'suspicious_links'],
-                'risk_level': 'medium'
-            },
-            'hr_announcement': {
-                'phishing_signs': ['suspicious_links', 'generic_greeting'],
-                'risk_level': 'low'
+        # If custom phishing signs are provided, use them
+        if custom_phishing_signs:
+            # Create the profile with custom signs
+            profile = {
+                'phishing_signs': custom_phishing_signs,  # Dict format with difficulty levels
+                'target_info': f'Employee at {target_company}'
             }
-        }
+        else:
+            # Fetch scenarios from API or use fallback
+            scenario_config = fetch_scenarios_from_api()
 
-        # Get the scenario config (default to urgent_action if not in mapping)
-        config = scenario_config.get(scenario.lower(), {
-            'phishing_signs': ['urgency', 'suspicious_links'],
-            'risk_level': 'medium'
-        })
+            # Get the scenario config (default to urgent_action if not in mapping)
+            config = scenario_config.get(scenario.lower(), {
+                'phishing_signs': ['urgency', 'suspicious_links']
+            })
 
-        # Create the profile for the generator
-        profile = {
-            'phishing_signs': config['phishing_signs'],
-            'risk_level': config['risk_level'],
-            'target_info': f'Employee at {target_company}'
-        }
+            # Create the profile for the generator
+            # Scenarios only define which phishing signs to use, not difficulty/risk
+            profile = {
+                'phishing_signs': config['phishing_signs'],
+                'target_info': f'Employee at {target_company}'
+            }
 
         # Generate the email
         result = generator.generate_email(profile)
@@ -940,11 +1020,26 @@ def main():
                         help='Output format (default: json)')
     parser.add_argument('--include-landing-page', action='store_true',
                         help='Also generate a matching landing page')
+    parser.add_argument('--phishing-signs', type=str, default=None,
+                        help='JSON string of phishing signs with difficulty levels')
 
     args = parser.parse_args()
 
+    # Parse phishing signs if provided
+    custom_signs = None
+    if args.phishing_signs:
+        try:
+            custom_signs = json.loads(args.phishing_signs)
+        except json.JSONDecodeError:
+            print(json.dumps({
+                'subject': 'Error: Invalid Phishing Signs',
+                'text': 'Failed to parse phishing signs JSON',
+                'html': '<p>Failed to parse phishing signs JSON</p>'
+            }))
+            return
+
     # Generate and print the template
-    output = generate_template(args.scenario, args.target, args.format, args.include_landing_page)
+    output = generate_template(args.scenario, args.target, args.format, args.include_landing_page, custom_signs)
     print(output)
 
 

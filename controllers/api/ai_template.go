@@ -15,9 +15,10 @@ import (
 
 // AITemplateRequest represents the request structure for AI template generation
 type AITemplateRequest struct {
-	Scenario           string `json:"scenario"`
-	TargetCompany      string `json:"target_company"`
-	IncludeLandingPage bool   `json:"include_landing_page"`
+	Scenario           string            `json:"scenario"`
+	TargetCompany      string            `json:"target_company"`
+	IncludeLandingPage bool              `json:"include_landing_page"`
+	PhishingSigns      map[string]string `json:"phishing_signs"`
 }
 
 // AITemplateResponse represents the response from the Python AI module
@@ -50,7 +51,7 @@ func (as *Server) GenerateAITemplate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Call Python module to generate template
-		template, err := generateTemplateWithAI(req.Scenario, req.TargetCompany, req.IncludeLandingPage)
+		template, err := generateTemplateWithAI(req.Scenario, req.TargetCompany, req.IncludeLandingPage, req.PhishingSigns)
 		if err != nil {
 			log.Errorf("Error generating AI template: %v", err)
 			JSONResponse(w, models.Response{Success: false, Message: fmt.Sprintf("Failed to generate template: %v", err)}, http.StatusInternalServerError)
@@ -66,7 +67,7 @@ func (as *Server) GenerateAITemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 // generateTemplateWithAI calls the Python AI module to generate a phishing template
-func generateTemplateWithAI(scenario string, targetCompany string, includeLandingPage bool) (*AITemplateResponse, error) {
+func generateTemplateWithAI(scenario string, targetCompany string, includeLandingPage bool, phishingSigns map[string]string) (*AITemplateResponse, error) {
 	// Create context with timeout (30 seconds for AI generation)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -82,6 +83,16 @@ func generateTemplateWithAI(scenario string, targetCompany string, includeLandin
 	// Add landing page flag if requested
 	if includeLandingPage {
 		args = append(args, "--include-landing-page")
+	}
+
+	// Add phishing signs if provided
+	if len(phishingSigns) > 0 {
+		signsJSON, err := json.Marshal(phishingSigns)
+		if err != nil {
+			log.Errorf("Error marshaling phishing signs: %v", err)
+		} else {
+			args = append(args, "--phishing-signs", string(signsJSON))
+		}
 	}
 
 	cmd := exec.CommandContext(ctx, "python", args...)

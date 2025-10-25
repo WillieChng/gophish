@@ -26,6 +26,7 @@
                 <tr>
                     <th>Name</th>
                     <th># of Members</th>
+                    <th>Risk Profile</th>
                     <th>Modified Date</th>
                     <th class="col-md-2 no-sort"></th>
                 </tr>
@@ -82,6 +83,121 @@
                     </form>
                 </div>
                 <br />
+                <div class="panel panel-info">
+                    <div class="panel-heading">
+                        <h4 class="panel-title">
+                            <i class="fa fa-shield"></i> Risk Profile Configuration
+                            <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                               title="Configure the difficulty level for each phishing sign. Low = Easy to detect, Medium = Moderate difficulty, High = Sophisticated/Hard to detect"></i>
+                        </h4>
+                    </div>
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label><i class="fa fa-clock-o"></i> Urgency</label>
+                                    <div class="btn-group btn-group-justified" role="group">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-success risk-btn" data-risk="risk_urgency" data-value="low">Low</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-warning risk-btn active" data-risk="risk_urgency" data-value="medium">Medium</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-danger risk-btn" data-risk="risk_urgency" data-value="high">High</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label><i class="fa fa-link"></i> Suspicious Links</label>
+                                    <div class="btn-group btn-group-justified" role="group">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-success risk-btn" data-risk="risk_suspicious_links" data-value="low">Low</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-warning risk-btn active" data-risk="risk_suspicious_links" data-value="medium">Medium</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-danger risk-btn" data-risk="risk_suspicious_links" data-value="high">High</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label><i class="fa fa-user"></i> Generic Greeting</label>
+                                    <div class="btn-group btn-group-justified" role="group">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-success risk-btn" data-risk="risk_generic_greeting" data-value="low">Low</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-warning risk-btn active" data-risk="risk_generic_greeting" data-value="medium">Medium</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-danger risk-btn" data-risk="risk_generic_greeting" data-value="high">High</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label><i class="fa fa-envelope"></i> Suspicious Sender</label>
+                                    <div class="btn-group btn-group-justified" role="group">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-success risk-btn" data-risk="risk_suspicious_sender" data-value="low">Low</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-warning risk-btn active" data-risk="risk_suspicious_sender" data-value="medium">Medium</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-danger risk-btn" data-risk="risk_suspicious_sender" data-value="high">High</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label><i class="fa fa-paperclip"></i> Attachments</label>
+                                    <div class="btn-group btn-group-justified" role="group">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-success risk-btn" data-risk="risk_attachments" data-value="low">Low</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-warning risk-btn active" data-risk="risk_attachments" data-value="medium">Medium</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-danger risk-btn" data-risk="risk_attachments" data-value="high">High</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label><i class="fa fa-text-width"></i> Spelling Errors</label>
+                                    <div class="btn-group btn-group-justified" role="group">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-success risk-btn" data-risk="risk_spelling_errors" data-value="low">Low</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-warning risk-btn active" data-risk="risk_spelling_errors" data-value="medium">Medium</button>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-danger risk-btn" data-risk="risk_spelling_errors" data-value="high">High</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <br />
+                <h4><i class="fa fa-users"></i> Group Members</h4>
                 <table id="targetsTable" class="table table-hover table-striped table-condensed">
                     <thead>
                         <tr>

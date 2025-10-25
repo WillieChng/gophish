@@ -11,15 +11,21 @@ import (
 
 // Template models hold the attributes for an email template to be sent to targets
 type Template struct {
-	Id             int64        `json:"id" gorm:"column:id; primary_key:yes"`
-	UserId         int64        `json:"-" gorm:"column:user_id"`
-	Name           string       `json:"name"`
-	EnvelopeSender string       `json:"envelope_sender"`
-	Subject        string       `json:"subject"`
-	Text           string       `json:"text"`
-	HTML           string       `json:"html" gorm:"column:html"`
-	ModifiedDate   time.Time    `json:"modified_date"`
-	Attachments    []Attachment `json:"attachments"`
+	Id                   int64        `json:"id" gorm:"column:id; primary_key:yes"`
+	UserId               int64        `json:"-" gorm:"column:user_id"`
+	Name                 string       `json:"name"`
+	EnvelopeSender       string       `json:"envelope_sender"`
+	Subject              string       `json:"subject"`
+	Text                 string       `json:"text"`
+	HTML                 string       `json:"html" gorm:"column:html"`
+	ModifiedDate         time.Time    `json:"modified_date"`
+	Attachments          []Attachment `json:"attachments"`
+	RiskUrgency          string       `json:"risk_urgency" gorm:"column:risk_urgency"`
+	RiskSuspiciousLinks  string       `json:"risk_suspicious_links" gorm:"column:risk_suspicious_links"`
+	RiskGenericGreeting  string       `json:"risk_generic_greeting" gorm:"column:risk_generic_greeting"`
+	RiskSuspiciousSender string       `json:"risk_suspicious_sender" gorm:"column:risk_suspicious_sender"`
+	RiskAttachments      string       `json:"risk_attachments" gorm:"column:risk_attachments"`
+	RiskSpellingErrors   string       `json:"risk_spelling_errors" gorm:"column:risk_spelling_errors"`
 }
 
 // ErrTemplateNameNotSpecified is thrown when a template name is not specified

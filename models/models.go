@@ -250,5 +250,21 @@ func Setup(c *config.Config) error {
 			return err
 		}
 	}
+
+	// Initialize MongoDB if configured
+	if conf.MongoURI != "" {
+		err = SetupMongoDB(conf.MongoURI, conf.MongoDB)
+		if err != nil {
+			log.Warnf("MongoDB initialization failed: %v", err)
+			log.Warn("Continuing without MongoDB support")
+		} else {
+			// Seed system scenarios
+			err = SeedSystemScenarios()
+			if err != nil {
+				log.Warnf("Failed to seed system scenarios: %v", err)
+			}
+		}
+	}
+
 	return nil
 }

@@ -1,5 +1,41 @@
 var groups = []
 
+// Risk profile configuration mapping icons and colors
+var riskConfig = {
+    risk_urgency: { icon: 'fa-clock-o', label: 'Urgency' },
+    risk_suspicious_links: { icon: 'fa-link', label: 'Suspicious Links' },
+    risk_generic_greeting: { icon: 'fa-user', label: 'Generic Greeting' },
+    risk_suspicious_sender: { icon: 'fa-envelope', label: 'Suspicious Sender' },
+    risk_attachments: { icon: 'fa-paperclip', label: 'Attachments' },
+    risk_spelling_errors: { icon: 'fa-text-width', label: 'Spelling Errors' }
+}
+
+var riskColors = {
+    low: '#5cb85c',
+    medium: '#f0ad4e',
+    high: '#d9534f'
+}
+
+// Generate risk profile blocks visualization
+function generateRiskBlocks(item) {
+    var html = '<div style="display: flex; gap: 4px; flex-wrap: wrap;">'
+    var risks = ['risk_urgency', 'risk_suspicious_links', 'risk_generic_greeting',
+                 'risk_suspicious_sender', 'risk_attachments', 'risk_spelling_errors']
+
+    risks.forEach(function(risk) {
+        var level = item[risk] || 'medium'
+        var config = riskConfig[risk]
+        var color = riskColors[level]
+        html += '<div style="background-color: ' + color + '; width: 28px; height: 28px; border-radius: 4px; ' +
+                'display: flex; align-items: center; justify-content: center; color: white;" ' +
+                'title="' + config.label + ': ' + level.charAt(0).toUpperCase() + level.slice(1) + '">' +
+                '<i class="fa ' + config.icon + '" style="font-size: 12px;"></i></div>'
+    })
+
+    html += '</div>'
+    return html
+}
+
 // Save attempts to POST or PUT to /groups/
 function save(id) {
     var targets = []
@@ -13,7 +49,13 @@ function save(id) {
     })
     var group = {
         name: $("#name").val(),
-        targets: targets
+        targets: targets,
+        risk_urgency: $('[data-risk="risk_urgency"].active').data('value') || 'medium',
+        risk_suspicious_links: $('[data-risk="risk_suspicious_links"].active').data('value') || 'medium',
+        risk_generic_greeting: $('[data-risk="risk_generic_greeting"].active').data('value') || 'medium',
+        risk_suspicious_sender: $('[data-risk="risk_suspicious_sender"].active').data('value') || 'medium',
+        risk_attachments: $('[data-risk="risk_attachments"].active').data('value') || 'medium',
+        risk_spelling_errors: $('[data-risk="risk_spelling_errors"].active').data('value') || 'medium'
     }
     // Submit the group
     if (id != -1) {
@@ -50,6 +92,18 @@ function dismiss() {
     $("#targetsTable").dataTable().DataTable().clear().draw()
     $("#name").val("")
     $("#modal\\.flashes").empty()
+    // Reset risk buttons to medium
+    resetRiskButtons()
+}
+
+function resetRiskButtons() {
+    $('.risk-btn').removeClass('active')
+    $('.risk-btn[data-value="medium"]').addClass('active')
+}
+
+function setRiskButton(riskType, value) {
+    $('.risk-btn[data-risk="' + riskType + '"]').removeClass('active')
+    $('.risk-btn[data-risk="' + riskType + '"][data-value="' + value + '"]').addClass('active')
 }
 
 function edit(id) {
@@ -65,12 +119,22 @@ function edit(id) {
     })
     if (id == -1) {
         $("#groupModalLabel").text("New Group");
+        resetRiskButtons()
         var group = {}
     } else {
         $("#groupModalLabel").text("Edit Group");
         api.groupId.get(id)
             .success(function (group) {
                 $("#name").val(group.name)
+
+                // Load risk profile values
+                setRiskButton('risk_urgency', group.risk_urgency || 'medium')
+                setRiskButton('risk_suspicious_links', group.risk_suspicious_links || 'medium')
+                setRiskButton('risk_generic_greeting', group.risk_generic_greeting || 'medium')
+                setRiskButton('risk_suspicious_sender', group.risk_suspicious_sender || 'medium')
+                setRiskButton('risk_attachments', group.risk_attachments || 'medium')
+                setRiskButton('risk_spelling_errors', group.risk_spelling_errors || 'medium')
+
                 targetRows = []
                 $.each(group.targets, function (i, record) {
                   targetRows.push([
@@ -240,6 +304,7 @@ function load() {
                     groupRows.push([
                         escapeHtml(group.name),
                         escapeHtml(group.num_targets),
+                        generateRiskBlocks(group),
                         moment(group.modified_date).format('MMMM Do YYYY, h:mm:ss a'),
                         "<div class='pull-right'><button class='btn btn-primary' data-toggle='modal' data-backdrop='static' data-target='#modal' onclick='edit(" + group.id + ")'>\
                     <i class='fa fa-pencil'></i>\
@@ -293,4 +358,11 @@ $(document).ready(function () {
         dismiss();
     });
     $("#csv-template").click(downloadCSVTemplate)
+
+    // Handle risk button clicks
+    $(document).on('click', '.risk-btn', function() {
+        var riskType = $(this).data('risk')
+        $('.risk-btn[data-risk="' + riskType + '"]').removeClass('active')
+        $(this).addClass('active')
+    })
 });
