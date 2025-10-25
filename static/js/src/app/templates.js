@@ -684,22 +684,31 @@ function loadScenariosIntoDropdown() {
         success: function(scenarios) {
             // Only update dropdown if we got valid data
             if (scenarios && scenarios.length > 0) {
-                var dropdown = $("#ai_scenario")
-                dropdown.empty()
+                var scenario_select = $("#ai_scenario")
 
-                // Add all scenarios to dropdown
+                // Sort scenarios alphabetically by display name (A-Z)
+                scenarios.sort(function(a, b) {
+                    return a.display_name.localeCompare(b.display_name)
+                })
+
+                // Clear and repopulate with sorted scenarios
+                scenario_select.empty()
                 scenarios.forEach(function(scenario) {
                     var option = $('<option></option>')
                         .attr('value', scenario.name)
                         .text(scenario.display_name)
-                    dropdown.append(option)
+                    scenario_select.append(option)
                 })
+
+                // Auto-select first scenario if only one exists
+                if (scenarios.length === 1) {
+                    scenario_select.val(scenarios[0].name)
+                }
             }
         },
         error: function(xhr) {
             console.error("Failed to load scenarios:", xhr)
             // Keep existing hardcoded scenarios as fallback
-            // Don't modify the dropdown - it will use the hardcoded HTML options
         }
     })
 }
