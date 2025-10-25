@@ -44,3 +44,8 @@ nul
 .env
 .env.local
 .env.production
+
+# IDE Settings
+.vscode/
+.idea/
+.claude/
