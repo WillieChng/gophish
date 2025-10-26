@@ -767,17 +767,20 @@ table.dataTable {
     border-color: #a72622 !important;
 }
 
-/* Style scenario select to show 6 items with scroll */
-#ai_scenario[size] {
+/* Style scenario select to show 5 items with scroll */
+#ai_scenario[size],
+#remove_scenario_select[size] {
     height: auto !important;
     padding: 5px;
 }
 
-#ai_scenario[size] option {
+#ai_scenario[size] option,
+#remove_scenario_select[size] option {
     padding: 8px 12px;
     border-bottom: 1px solid #eee;
 }
 
-#ai_scenario[size] option:hover {
+#ai_scenario[size] option:hover,
+#remove_scenario_select[size] option:hover {
     background-color: #f5f5f5;
 }

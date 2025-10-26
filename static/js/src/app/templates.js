@@ -592,6 +592,126 @@ function openAddScenarioModal() {
     $("#scenario_description").val("")
 }
 
+// Open Remove Scenario Modal
+function openRemoveScenarioModal() {
+    // Clear any previous messages
+    $("#removeScenarioModal\\.flashes").empty()
+
+    // Load scenarios for deletion
+    loadScenariosForRemoval()
+}
+
+// Load scenarios into removal dropdown (all scenarios including system)
+function loadScenariosForRemoval() {
+    $.ajax({
+        url: '/api/scenarios/',
+        type: 'GET',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader('Authorization', 'Bearer ' + user.api_key)
+        },
+        success: function(scenarios) {
+            var scenario_select = $("#remove_scenario_select")
+
+            // Only update dropdown if we got valid data
+            if (scenarios && scenarios.length > 0) {
+                // Sort scenarios alphabetically by display name (A-Z)
+                scenarios.sort(function(a, b) {
+                    return a.display_name.localeCompare(b.display_name)
+                })
+
+                // Clear and repopulate with sorted scenarios
+                scenario_select.empty()
+                scenarios.forEach(function(scenario) {
+                    var option = $('<option></option>')
+                        .attr('value', scenario.id)
+                        .attr('data-name', scenario.display_name)
+                        .attr('data-is-system', scenario.is_system)
+                        .text(scenario.display_name)
+                    scenario_select.append(option)
+                })
+
+                // Auto-select first scenario if only one exists
+                if (scenarios.length === 1) {
+                    scenario_select.val(scenarios[0].id)
+                }
+            }
+        },
+        error: function(xhr) {
+            console.error("Failed to load scenarios:", xhr)
+            // Keep existing option if error occurs
+        }
+    })
+}
+
+// Delete selected scenario
+function deleteScenario() {
+    var scenarioId = $("#remove_scenario_select").val()
+    var scenarioName = $("#remove_scenario_select option:selected").attr('data-name')
+    var isSystem = $("#remove_scenario_select option:selected").attr('data-is-system') === 'true'
+
+    if (!scenarioId) {
+        $("#removeScenarioModal\\.flashes").empty().append(
+            '<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> Please select a scenario to delete</div>'
+        )
+        return
+    }
+
+    // Enhanced confirmation for system scenarios
+    var confirmMessage = isSystem
+        ? 'WARNING: You are about to delete the SYSTEM scenario "' + scenarioName + '".\n\n' +
+          'This is a built-in scenario used by the system. Deleting it may affect existing templates and campaigns.\n\n' +
+          'Are you absolutely sure you want to proceed? This cannot be undone.'
+        : 'Are you sure you want to delete "' + scenarioName + '"? This cannot be undone.'
+
+    if (!confirm(confirmMessage)) {
+        return
+    }
+
+    // Show loading state
+    var btnHtml = $("#deleteScenarioButton").html()
+    $("#deleteScenarioButton").html('<i class="fa fa-spinner fa-spin"></i> Deleting...')
+    $("#deleteScenarioButton").prop("disabled", true)
+
+    // Call API to delete scenario
+    $.ajax({
+        url: '/api/scenarios/' + scenarioId,
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader('Authorization', 'Bearer ' + user.api_key)
+        },
+        success: function(data) {
+            // Reset button
+            $("#deleteScenarioButton").html(btnHtml)
+            $("#deleteScenarioButton").prop("disabled", false)
+
+            // Close modal
+            $("#removeScenarioModal").modal("hide")
+
+            // Show success message
+            successFlash("Scenario '" + scenarioName + "' deleted successfully!")
+
+            // Reload scenarios in the AI generation dropdown
+            loadScenariosIntoDropdown()
+        },
+        error: function(xhr) {
+            // Reset button
+            $("#deleteScenarioButton").html(btnHtml)
+            $("#deleteScenarioButton").prop("disabled", false)
+
+            var errorMsg = "Failed to delete scenario"
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg = xhr.responseJSON.message
+            } else if (xhr.status === 403) {
+                errorMsg = "Cannot delete system scenarios"
+            }
+
+            $("#removeScenarioModal\\.flashes").empty().append(
+                '<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> ' + errorMsg + '</div>'
+            )
+        }
+    })
+}
+
 // Save new scenario to MongoDB
 function saveScenario() {
     var name = $("#scenario_name").val().trim()

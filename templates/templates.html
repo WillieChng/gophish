@@ -11,6 +11,7 @@
             data-target="#modal"><i class="fa fa-plus"></i> New Template</button>
         <button type="button" class="btn btn-success" onclick="openAIModal()" data-toggle="modal" data-backdrop="static" data-target="#generateAIModal"><i class="fa fa-magic"></i> Generate AI Template</button>
         <button type="button" class="btn btn-info" onclick="openAddScenarioModal()" data-toggle="modal" data-backdrop="static" data-target="#addScenarioModal"><i class="fa fa-sitemap"></i> Add Scenario</button>
+        <button type="button" class="btn btn-danger" onclick="openRemoveScenarioModal()" data-toggle="modal" data-backdrop="static" data-target="#removeScenarioModal"><i class="fa fa-trash"></i> Remove Scenario</button>
     </div>
     &nbsp;
     <div id="loading">
@@ -153,7 +154,7 @@
                 </div>
                 <label class="control-label" for="ai_scenario">Phishing Scenario:</label>
                 <div class="form-group">
-                    <select class="form-control" id="ai_scenario" size="5">
+                    <select class="form-control" id="ai_scenario" size="5" style="overflow-y: auto;">
                         <option value="">Loading scenarios...</option>
                     </select>
                 </div>
@@ -319,6 +320,35 @@
                 <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
                 <button type="button" class="btn btn-primary" id="saveScenarioButton" onclick="saveScenario()">
                     <i class="fa fa-save"></i> Save Scenario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Remove Scenario Modal -->
+<div class="modal fade" id="removeScenarioModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="removeScenarioModalLabel">Remove Scenario</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row" id="removeScenarioModal.flashes"></div>
+                <div class="alert alert-warning">
+                    <i class="fa fa-warning"></i> Warning: Scenarios that are deleted will be permanently removed and cannot be recovered.
+                </div>
+                <label class="control-label" for="remove_scenario_select">Select Scenario to Remove:</label>
+                <div class="form-group">
+                    <select class="form-control" id="remove_scenario_select" size="5" style="overflow-y: auto;">
+                        <option value="">Loading scenarios...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
+                <button type="button" class="btn btn-danger" id="deleteScenarioButton" onclick="deleteScenario()">
+                    <i class="fa fa-trash"></i> Delete Scenario
                 </button>
             </div>
         </div>
