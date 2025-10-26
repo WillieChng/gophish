@@ -849,12 +849,12 @@ def fetch_scenarios_from_api():
         if response.status_code == 200:
             scenarios = response.json()
             # Convert API response to scenario config format
+            # Only need description now - phishing signs come from UI
             scenario_config = {}
             for s in scenarios:
-                # For now, use default phishing signs based on scenario theme
-                # In the future, this could be fetched from group/template risk profiles
+                desc = s.get('description', s.get('display_name', s['name']))
                 scenario_config[s['name']] = {
-                    'phishing_signs': get_default_signs_for_scenario(s['name'])
+                    'description': desc
                 }
             return scenario_config
         else:
@@ -865,60 +865,38 @@ def fetch_scenarios_from_api():
         return get_fallback_scenarios()
 
 
-def get_default_signs_for_scenario(scenario_name):
-    """
-    Get default phishing signs for a scenario based on its theme
-
-    Args:
-        scenario_name: Name of the scenario
-
-    Returns:
-        list: Default phishing signs for this scenario
-    """
-    defaults = {
-        'password_reset': ['urgency', 'suspicious_links'],
-        'urgent_action': ['urgency', 'generic_greeting', 'suspicious_links'],
-        'account_verification': ['urgency', 'suspicious_links', 'generic_greeting'],
-        'security_alert': ['urgency', 'suspicious_sender', 'suspicious_links'],
-        'document_share': ['suspicious_links', 'attachments'],
-        'invoice': ['urgency', 'attachments', 'suspicious_sender'],
-        'it_support': ['urgency', 'suspicious_links'],
-        'hr_announcement': ['suspicious_links', 'generic_greeting'],
-    }
-    return defaults.get(scenario_name, ['urgency', 'suspicious_links'])
-
-
 def get_fallback_scenarios():
     """
     Fallback scenario configuration if API is not available
+    Only contains descriptions - phishing signs must come from UI
 
     Returns:
-        dict: Hardcoded scenario configuration
+        dict: Hardcoded scenario descriptions
     """
     return {
         'password_reset': {
-            'phishing_signs': ['urgency', 'suspicious_links']
+            'description': 'Simulates a password reset phishing attempt with urgency and suspicious links'
         },
         'urgent_action': {
-            'phishing_signs': ['urgency', 'generic_greeting', 'suspicious_links']
+            'description': 'High-pressure phishing email demanding immediate action'
         },
         'account_verification': {
-            'phishing_signs': ['urgency', 'suspicious_links', 'generic_greeting']
+            'description': 'Requests account verification with suspicious links and urgency'
         },
         'security_alert': {
-            'phishing_signs': ['urgency', 'suspicious_sender', 'suspicious_links']
+            'description': 'Fake security alert from IT department or security team'
         },
         'document_share': {
-            'phishing_signs': ['suspicious_links', 'attachments']
+            'description': 'Simulates a shared document or file with suspicious links'
         },
         'invoice': {
-            'phishing_signs': ['urgency', 'attachments', 'suspicious_sender']
+            'description': 'Fake invoice or payment request with attachments'
         },
         'it_support': {
-            'phishing_signs': ['urgency', 'suspicious_links']
+            'description': 'Fake IT support ticket or system maintenance notification'
         },
         'hr_announcement': {
-            'phishing_signs': ['suspicious_links', 'generic_greeting']
+            'description': 'Fake HR announcement or policy update'
         }
     }
 
@@ -946,28 +924,30 @@ def generate_template(scenario, target_company, output_format='json', include_la
         # Initialize the generator
         generator = PhishingGenerator()
 
-        # If custom phishing signs are provided, use them
-        if custom_phishing_signs:
-            # Create the profile with custom signs
-            profile = {
-                'phishing_signs': custom_phishing_signs,  # Dict format with difficulty levels
-                'target_info': f'Employee at {target_company}'
-            }
-        else:
-            # Fetch scenarios from API or use fallback
-            scenario_config = fetch_scenarios_from_api()
+        # Fetch scenarios from API to get scenario description
+        scenario_config = fetch_scenarios_from_api()
+        config = scenario_config.get(scenario.lower(), {
+            'description': scenario.replace('_', ' ').title()
+        })
 
-            # Get the scenario config (default to urgent_action if not in mapping)
-            config = scenario_config.get(scenario.lower(), {
-                'phishing_signs': ['urgency', 'suspicious_links']
-            })
+        scenario_description = config.get('description', scenario.replace('_', ' ').title())
 
-            # Create the profile for the generator
-            # Scenarios only define which phishing signs to use, not difficulty/risk
-            profile = {
-                'phishing_signs': config['phishing_signs'],
-                'target_info': f'Employee at {target_company}'
-            }
+        # Phishing signs must be provided from UI (all 6 signs with difficulty levels)
+        if not custom_phishing_signs:
+            raise ValueError("Phishing signs with difficulty levels must be provided. Please configure all 6 phishing signs in the UI.")
+
+        # Validate that all 6 required phishing signs are present
+        required_signs = ['urgency', 'suspicious_links', 'generic_greeting', 'suspicious_sender', 'attachments', 'spelling_errors']
+        missing_signs = [sign for sign in required_signs if sign not in custom_phishing_signs]
+        if missing_signs:
+            raise ValueError(f"Missing required phishing signs: {', '.join(missing_signs)}. All 6 signs must be configured.")
+
+        # Create the profile with UI-configured signs and scenario description
+        profile = {
+            'phishing_signs': custom_phishing_signs,  # Dict format with difficulty levels from UI
+            'target_info': f'Employee at {target_company}',
+            'scenario_description': scenario_description
+        }
 
         # Generate the email
         result = generator.generate_email(profile)

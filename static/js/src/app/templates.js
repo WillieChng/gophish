@@ -1,4 +1,5 @@
 var templates = []
+var scenariosCache = {} // Cache for scenario name -> display name mapping
 var icons = {
     "application/vnd.ms-excel": "fa-file-excel-o",
     "text/plain": "fa-file-text-o",
@@ -453,18 +454,8 @@ function generateAITemplate() {
             $("#ai_include_landing_page").prop("disabled", false)
             $(".ai-risk-btn").prop("disabled", false)
 
-            // Generate template name from scenario
-            var scenarioNames = {
-                'password_reset': 'Password Reset',
-                'urgent_action': 'Urgent Action Required',
-                'account_verification': 'Account Verification',
-                'security_alert': 'Security Alert',
-                'document_share': 'Document Shared',
-                'invoice': 'Invoice/Payment',
-                'it_support': 'IT Support',
-                'hr_announcement': 'HR Announcement'
-            }
-            var scenarioName = scenarioNames[scenario] || 'Phishing Template'
+            // Generate template name from scenario using cached display names
+            var scenarioName = scenariosCache[scenario] || scenario.replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase() })
             var templateName = "AI Generated - " + scenarioName + " - " + targetCompany
 
             // If landing page was generated, save it first
@@ -805,6 +796,12 @@ function loadScenariosIntoDropdown() {
             // Only update dropdown if we got valid data
             if (scenarios && scenarios.length > 0) {
                 var scenario_select = $("#ai_scenario")
+
+                // Cache scenario name -> display name mapping
+                scenariosCache = {}
+                scenarios.forEach(function(scenario) {
+                    scenariosCache[scenario.name] = scenario.display_name
+                })
 
                 // Sort scenarios alphabetically by display name (A-Z)
                 scenarios.sort(function(a, b) {
