@@ -20,6 +20,6 @@
 		"filename": "",
 		"level": ""
 	},
-	"mongo_uri": "mongodb://localhost:27017",
-	"mongo_db": "gophish"
+	"mongo_uri": "",
+	"mongo_db": ""
 }

@@ -19,6 +19,9 @@ func SetupMongoDB(uri, dbName string) error {
 		return nil
 	}
 
+	// Log the connection URI (hiding credentials for security)
+	log.Infof("Attempting to connect to MongoDB URI: %s...", uri[:20])
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

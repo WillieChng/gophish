@@ -40,10 +40,11 @@ nul
 *.tmp
 *.temp
 
-# Environment files (if any)
+# Environment files (NEVER commit these - they contain secrets!)
 .env
 .env.local
 .env.production
+.env.development
 
 # IDE Settings
 .vscode/
