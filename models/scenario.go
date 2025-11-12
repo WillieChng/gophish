@@ -40,6 +40,9 @@ var ErrScenarioNameNotSpecified = errors.New("Scenario name not specified")
 // ErrScenarioDisplayNameNotSpecified is thrown when a display name is not specified
 var ErrScenarioDisplayNameNotSpecified = errors.New("Scenario display name not specified")
 
+// ErrScenarioDescriptionNotSpecified is thrown when a description is not specified
+var ErrScenarioDescriptionNotSpecified = errors.New("Scenario description not specified")
+
 // ErrScenarioNotFound is thrown when a scenario is not found
 var ErrScenarioNotFound = errors.New("Scenario not found")
 
@@ -53,6 +56,9 @@ func (s *Scenario) Validate() error {
 	}
 	if s.DisplayName == "" {
 		return ErrScenarioDisplayNameNotSpecified
+	}
+	if s.Description == "" {
+		return ErrScenarioDescriptionNotSpecified
 	}
 	return nil
 }

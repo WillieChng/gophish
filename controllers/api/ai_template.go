@@ -47,7 +47,8 @@ func (as *Server) GenerateAITemplate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if req.TargetCompany == "" {
-			req.TargetCompany = "Your Organization" // Default value
+			JSONResponse(w, models.Response{Success: false, Message: "Target company name is required"}, http.StatusBadRequest)
+			return
 		}
 
 		// Call Python module to generate template
@@ -131,6 +132,11 @@ func generateTemplateWithAI(scenario string, targetCompany string, includeLandin
 	// Check if the response contains an error field
 	if response.Subject == "AI Generation Failed" || response.Subject == "Error: API Key Not Set" || response.Subject == "Error: Configuration File Missing" || response.Subject == "Error: AI Module Not Configured" {
 		return nil, fmt.Errorf(response.Text)
+	}
+
+	// Check if Claude API responded (response should have content)
+	if response.Subject == "" && response.HTML == "" && response.Text == "" {
+		return nil, fmt.Errorf("Claude API did not respond. Please check your API configuration and try again")
 	}
 
 	return &response, nil

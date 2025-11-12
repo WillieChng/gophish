@@ -58,6 +58,64 @@ function save(idx) {
     template.name = $("#name").val()
     template.subject = $("#subject").val()
     template.envelope_sender = $("#envelope-sender").val()
+
+    // Check for duplicate template name (only for new templates)
+    if (idx == -1) {
+        var duplicateTemplate = templates.find(function(t) {
+            return t.name.toLowerCase() === template.name.toLowerCase()
+        })
+        if (duplicateTemplate) {
+            // Show error on current step
+            if ($("#templateStep").is(":visible")) {
+                modalError("A template with the name '" + template.name + "' already exists. Please choose a different name.")
+            } else if ($("#landingPageStep").is(":visible")) {
+                $("#landingPage\\.flashes").empty().append(
+                    '<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> ' +
+                    'A template with the name \'' + template.name + '\' already exists. Please go back and change the template name.</div>'
+                )
+            }
+            return
+        }
+
+        // Check for duplicate landing page name if landing page exists
+        if (window.aiGeneratedLandingPage) {
+            var landingPageName = $("#landing_page_name").val()
+
+            // Fetch existing pages to check for duplicates
+            api.pages.get()
+                .success(function(pages) {
+                    var duplicatePage = pages.find(function(p) {
+                        return p.name.toLowerCase() === landingPageName.toLowerCase()
+                    })
+                    if (duplicatePage) {
+                        // Show error on landing page step
+                        if ($("#landingPageStep").is(":visible")) {
+                            $("#landingPage\\.flashes").empty().append(
+                                '<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> ' +
+                                'A landing page with the name \'' + landingPageName + '\' already exists. Please choose a different name.</div>'
+                            )
+                        } else {
+                            modalError("A landing page with the name '" + landingPageName + "' already exists. Please change the landing page name before saving.")
+                        }
+                        return
+                    }
+                    // If no duplicates, proceed with save
+                    proceedWithSave(idx, template)
+                })
+                .error(function() {
+                    // If can't check pages, proceed with save anyway
+                    proceedWithSave(idx, template)
+                })
+            return // Exit early, save will happen in callback
+        }
+    }
+
+    // No landing page or editing existing template, proceed directly
+    proceedWithSave(idx, template)
+}
+
+// Helper function to proceed with actual save operation
+function proceedWithSave(idx, template) {
     template.html = CKEDITOR.instances["html_editor"].getData();
     // Fix the URL Scheme added by CKEditor (until we can remove it from the plugin)
     template.html = template.html.replace(/https?:\/\/{{\.URL}}/gi, "{{.URL}}")
@@ -125,9 +183,42 @@ function save(idx) {
         // Submit the template
         api.templates.post(template)
             .success(function (data) {
-                successFlash("Template added successfully!")
-                load()
-                dismiss()
+                // If there's a landing page to save, save it now
+                if (window.aiGeneratedLandingPage) {
+                    // Update landing page data from form fields (in case user edited)
+                    var landingPage = {
+                        name: $("#landing_page_name").val(),
+                        html: $("#landing_page_html").val(),
+                        capture_credentials: $("#landing_page_capture_credentials").prop("checked"),
+                        capture_passwords: $("#landing_page_capture_passwords").prop("checked"),
+                        redirect_url: $("#landing_page_redirect_url").val()
+                    }
+
+                    // Save the landing page
+                    api.pages.post(landingPage)
+                        .success(function(pageData) {
+                            successFlash("Template and landing page added successfully!")
+                            // Clear the stored landing page data
+                            delete window.aiGeneratedLandingPage
+                            delete window.aiGeneratedRiskProfile
+                            load()
+                            dismiss()
+                        })
+                        .error(function(pageError) {
+                            // Template was saved but landing page failed
+                            successFlash("Template added successfully, but landing page failed: " + (pageError.responseJSON ? pageError.responseJSON.message : "Unknown error"))
+                            delete window.aiGeneratedLandingPage
+                            delete window.aiGeneratedRiskProfile
+                            load()
+                            dismiss()
+                        })
+                } else {
+                    // No landing page, just show template success
+                    successFlash("Template added successfully!")
+                    delete window.aiGeneratedRiskProfile
+                    load()
+                    dismiss()
+                }
             })
             .error(function (data) {
                 modalError(data.responseJSON.message)
@@ -142,6 +233,26 @@ function dismiss() {
     $("#subject").val("")
     $("#text_editor").val("")
     $("#html_editor").val("")
+
+    // Clear landing page data
+    $("#landing_page_name").val("")
+    $("#landing_page_html").val("")
+    $("#landing_page_redirect_url").val("https://example.com")
+
+    // Reset modal view to template step
+    $("#landingPageStep").hide()
+    $("#templateStep").show()
+    $("#templateModalLabel").text("New Template")
+
+    // Reset buttons
+    $("#modalNext").hide()
+    $("#modalSubmit").show().text("Save Template")
+    $("#modalBack").hide()
+
+    // Clear stored data
+    delete window.aiGeneratedLandingPage
+    delete window.aiGeneratedRiskProfile
+
     $("#modal").modal('hide')
 }
 
@@ -282,6 +393,18 @@ function edit(idx) {
     } else {
         $("#templateModalLabel").text("New Template")
     }
+
+    // Ensure template step is shown and landing page step is hidden
+    $("#templateStep").show()
+    $("#landingPageStep").hide()
+
+    // Reset buttons for regular edit (no multi-step)
+    if (!window.aiGeneratedLandingPage) {
+        $("#modalNext").hide()
+        $("#modalSubmit").show().text("Save Template")
+        $("#modalBack").hide()
+    }
+
     // Handle Deletion
     $("#attachmentsTable").unbind('click').on("click", "span>i.fa-trash-o", function () {
         attachmentsTable.row($(this).parents('tr'))
@@ -382,10 +505,6 @@ function generateAITemplate() {
     var targetCompany = $("#ai_target_company").val()
     var includeLandingPage = $("#ai_include_landing_page").prop("checked")
 
-    if (!targetCompany) {
-        targetCompany = "Your Organization"
-    }
-
     // Show loading state
     var btnHtml = $("#generateAIButton").html()
     $("#generateAIButton").html('<i class="fa fa-spinner fa-spin"></i> Generating...')
@@ -458,25 +577,19 @@ function generateAITemplate() {
             var scenarioName = scenariosCache[scenario] || scenario.replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase() })
             var templateName = "AI Generated - " + scenarioName + " - " + targetCompany
 
-            // If landing page was generated, save it first
+            // Store landing page data for later (don't save yet)
             if (includeLandingPage && data.landing_page) {
                 var landingPageName = templateName + " - Landing Page"
-                var landingPage = {
+                window.aiGeneratedLandingPage = {
                     name: landingPageName,
                     html: data.landing_page,
                     capture_credentials: true,
                     capture_passwords: true,
                     redirect_url: "https://example.com"
                 }
-
-                // Save the landing page
-                api.pages.post(landingPage)
-                    .success(function(pageData) {
-                        successFlash("Landing page '" + landingPageName + "' created successfully!")
-                    })
-                    .error(function(pageError) {
-                        errorFlash("Failed to create landing page: " + (pageError.responseJSON ? pageError.responseJSON.message : "Unknown error"))
-                    })
+            } else {
+                // Clear any previous landing page data
+                delete window.aiGeneratedLandingPage
             }
 
             // Close the AI modal first
@@ -539,6 +652,19 @@ function generateAITemplate() {
                 $('.nav-tabs a[href="#html"]').click()
             }
 
+            // Setup modal buttons based on whether landing page was generated
+            if (window.aiGeneratedLandingPage) {
+                // Show "Next" button instead of "Save Template"
+                $("#modalNext").show()
+                $("#modalSubmit").hide()
+                $("#modalBack").hide()
+            } else {
+                // Show "Save Template" button only
+                $("#modalNext").hide()
+                $("#modalSubmit").show().text("Save Template")
+                $("#modalBack").hide()
+            }
+
             // Show success message
             var successMsg = includeLandingPage && data.landing_page ?
                 "<div style=\"text-align:center\" class=\"alert alert-success\">\
@@ -572,6 +698,51 @@ function generateAITemplate() {
             <i class=\"fa fa-exclamation-circle\"></i> " + errorMsg + "</div>")
     })
     }, 100) // 100ms delay to ensure UI updates
+}
+
+// Show landing page step in modal
+function showLandingPageStep() {
+    // Hide template step
+    $("#templateStep").hide()
+
+    // Populate landing page fields
+    if (window.aiGeneratedLandingPage) {
+        $("#landing_page_name").val(window.aiGeneratedLandingPage.name)
+        $("#landing_page_html").val(window.aiGeneratedLandingPage.html)
+        $("#landing_page_capture_credentials").prop("checked", window.aiGeneratedLandingPage.capture_credentials)
+        $("#landing_page_capture_passwords").prop("checked", window.aiGeneratedLandingPage.capture_passwords)
+        $("#landing_page_redirect_url").val(window.aiGeneratedLandingPage.redirect_url)
+    }
+
+    // Show landing page step
+    $("#landingPageStep").show()
+
+    // Update modal title
+    $("#templateModalLabel").text("Generated Landing Page")
+
+    // Update buttons: show Back and Save, hide Next
+    $("#modalBack").show()
+    $("#modalSubmit").show().text("Save Template & Page")
+    $("#modalNext").hide()
+}
+
+// Show template step in modal
+function showTemplateStep() {
+    // Hide landing page step
+    $("#landingPageStep").hide()
+
+    // Show template step
+    $("#templateStep").show()
+
+    // Update modal title
+    $("#templateModalLabel").text("New Template")
+
+    // Update buttons: show Next, hide Back and Save
+    if (window.aiGeneratedLandingPage) {
+        $("#modalNext").show()
+        $("#modalSubmit").hide()
+        $("#modalBack").hide()
+    }
 }
 
 // Open Add Scenario Modal
